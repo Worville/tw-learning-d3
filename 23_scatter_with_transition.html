@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>D3 Page Template</title>
+    <script type="text/javascript" src="d3.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <body>
+    <p>Click on this text to update the chart with new data values (once).</p>
+
+    <script type="text/javascript">
+    // Loading in a CSV using a row converter function
+
+    // parse a subset of columns from csv
+
+    // create a parser for the game date
+    var dateParser = d3.timeParse("%Y-%m-%d %H:%M:%S");
+    var dateShortener = d3.timeFormat("%Y-%m-%d");
+
+    var multiRowConverter = function(data) {
+    data.forEach(function(d) {
+      d.total_min = +d.total_min,
+      d.goals = +d.goals,
+      d.shots = +d.shots,
+      d.matchday = +d.matchday,
+      // parse the date first to a time object, then just the yyyy-mm-dd
+      d.game_date = dateShortener(dateParser(d.game_date))
+    });
+    return(data);
+  }
+    // store data in global variable
+    var dataset;
+
+    var storeData = function(data){
+      dataset = data;
+    }
+
+    // log the dataset
+    var logData = function(data) {
+      console.log(dataset);
+    }
+
+    // manually set the width and height of our svg
+    var w = 700;
+    var h = 500;
+
+    // set the scatter padding
+    var padding = 30;
+
+    // create an svg element in the DOM
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h);
+
+    // function to return max values for x and y
+    var calcMaxs = function(data) {
+      maxGoals = d3.max(dataset,
+        // useful hidden function below to loop through the data and get the max
+        function(d) {
+          return d.goals;
+        }),
+      maxShots = d3.max(dataset,
+        function(d) {
+          return d.shots;
+        }),
+      maxMin = d3.max(dataset,
+        function(d) {
+          return d.total_min;
+        }),
+      maxMatchday = d3.max(dataset,
+        function(d) {
+          return d.matchday
+        })
+    };
+
+
+    // create a function for each of the two scales
+    var generateScale = function(data) {
+      xScale = d3.scaleLinear()
+                .domain([0, maxMatchday])
+                .range([padding, w - padding*2]);
+      yScale = d3.scaleLinear()
+                 .domain([0, maxShots])
+                 .range([h - padding, padding]);
+      // scale for the radius
+      rScale = d3.scaleLinear()
+                 .domain([0, maxMin])
+                 .range([5, 10]);
+      aScale = d3.scaleSqrt()
+                 .domain([0, maxMin])
+                 .range([5, 10]);
+    };
+
+    // define the x-axis
+    var generateAxis = function(data) {
+      xAxis = d3.axisBottom()
+                  .scale(xScale)
+                  .ticks(18);
+
+      yAxis = d3.axisLeft()
+                .scale(yScale)
+                .ticks(5);
+    };
+
+    // create a circles plot
+    var plot = function(data) {
+      svg.selectAll("circle")
+         .data(dataset)
+         .enter()
+         .append("circle")
+         .attr("cx", function(d) {
+           return xScale(d.matchday);
+         })
+         .attr("cy", function(d) {
+           return yScale(d.shots);
+         })
+         .attr("r", function(d) {
+           return aScale(d.total_min); // sizes circles based on area
+         })
+         .attr("fill", "#00aeef");
+
+      svg.append("g")
+      // add the class 'axis' to these elements
+         .attr("class", "axis")
+         .attr("transform", "translate(0, " + (h - padding) + ")")
+         .call(xAxis);
+
+     svg.append("g")
+     // add the class 'axis' to these elements
+        .attr("class", "axis")
+        .attr("transform", "translate(" + (padding) + ", 0)")
+        .call(yAxis)
+      }
+
+      var dataUpdate = function() {
+        d3.select("p")
+          .on("click", function() {
+            // dataset = dataset.slice(0, 4); // filter down to just a small slice of the data
+            dataset = dataset.filter(function(d){return d.goals > 0}); // filter down to just the 90s
+            console.log(dataset);
+
+            svg.selectAll("circle")
+               .data(dataset)
+               .transition()
+               .delay(function(d, i){ // add in a delay for each point
+                 return i * 50
+               })
+               .duration(1000)
+               .ease(d3.easeLinear)
+               .attr("fill", "black");
+           });
+         }
+
+    // chain the loading, converting, logging and plotting of the data
+    d3.csv("data/morelos_2018.csv")
+      .then(multiRowConverter)
+      .then(storeData)
+      .then(logData)
+      .then(calcMaxs)
+      .then(generateScale)
+      .then(generateAxis)
+      .then(plot)
+      .then(dataUpdate);
+
+    </script>
+  </body>
+</html>

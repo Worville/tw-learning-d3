@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>D3 Page Template</title>
+    <script type="text/javascript" src="d3.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <body>
+    <script type="text/javascript">
+    // Loading in a CSV using a row converter function
+
+    // parse a subset of columns from csv
+    var multiRowConverter = function(data) {
+    data.forEach(function(d) {
+      d.total_min = +d.total_min,
+      d.goals = +d.goals,
+      d.shots = +d.shots,
+      d.matchday = +d.matchday
+    });
+    return(data);
+  }
+    // store data in global variable
+    var dataset;
+
+    var storeData = function(data){
+      dataset = data;
+    }
+
+    // log the dataset
+    var logData = function(data) {
+      console.log(dataset);
+    }
+
+    // tells the text function what to plot
+    var plotChoice = function(data) {
+      return (data.player_name + " played for " + data.total_min + " minutes");
+    }
+
+    // define a colour for the text based on minutes played
+    var colourFilter = function(data) {
+      if (data.total_min < 90) {
+        return "red";
+      } else {
+        return "black";
+      }
+    }
+
+    var barHeight = function(data){
+      return data.total_min + "px";
+    }
+
+
+    // manually set the width and height of our svg
+    var w = 1000;
+    var h = 500;
+
+    // create an svg element in the DOM
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h);
+
+    // create a circles plot
+    var plot = function(data) {
+      svg.selectAll("circle")
+         .data(dataset)
+         .enter()
+         .append("circle")
+         .attr("cx", function(d, i)
+         {
+           return(i * 50) + 5;
+         })
+         .attr("cy", h / 3)
+         .attr("r", function(d)
+         {
+           return d.total_min / 5;
+         })
+         .attr("fill", "yellow")
+         .attr("stroke", "orange")
+         .attr("stroke-width", 1.5)
+       }
+
+    // chain the loading, converting, logging and plotting of the data
+    d3.csv("data/morelos_2018.csv")
+      .then(multiRowConverter)
+      .then(storeData)
+      .then(logData)
+      .then(plot);
+
+    </script>
+  </body>
+</html>
